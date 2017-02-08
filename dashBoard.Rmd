@@ -5,6 +5,7 @@ output:
     orientation: columns
     vertical_layout: fill
     css: styles.css
+    source_code: embed
     social: ["twitter", "facebook", "google-plus","linkedin", "pinterest"]
 runtime: shiny    
 ---
@@ -22,9 +23,22 @@ library(httr)
 library(rvest)
 library(XML)
 library(selectr)
+library(feather)
 library(tidyverse)
 
+# pageViewsEn <- read_csv("data/pageViewsEn.csv") %>% 
+#   data.frame()#  has attr otherwise
 
+# fast and no ascii issues cf readr
+pageViewsEn <- read_feather("pageViewsEn.feather")
+
+exclude <- c("Main_Page","404.php", "Special:Search")
+todayTopTen <-pageViewsEn %>% 
+  mutate(date <- as.Date(date)) %>% ## if not using readr 
+  filter(date==max(date)&!article %in% exclude) %>% 
+  select(article,views) %>% 
+  mutate(rank=min_rank(-views)) %>% 
+  head(10)
 
 ```
 
@@ -181,7 +195,7 @@ DT::dataTableOutput("guardianTable")
 
 
 output$wikiCard <- renderUI({
-  req(data)
+  req(data())
   
   theName <- str_replace_all(data()$vals[1]," ","_")
   url <- paste0("http://en.wikipedia.org/wiki/",theName)
@@ -208,3 +222,126 @@ output$wikiCard <- renderUI({
 
 Daily Top 10
 =====================================
+
+
+```{r}
+
+topTenData <- reactive({
+  
+  # get rid of generic pages
+  
+  
+  vcardImage <- vector(mode = "character", length = 10)
+
+for(i in seq_along(todayTopTen$article)) {
+  topName <- todayTopTen$article[i]
+  url <- paste0("http://en.wikipedia.org/wiki/",topName)
+  test <- http_status(GET(url))
+  
+  temp <- read_html(url) %>%
+    html_nodes(".vcard img") %>% 
+    html_attr("src")
+  
+  vcardImage[i]<- ifelse(length(temp!=0),temp,"http://www.premiersoccerstats.com/noImage2.jpg")
+  
+}
+#   exclude <- c("Main_Page","404.php", "Special:Search")
+#   
+# todayTopTen <-pageViewsEn %>% 
+#   filter(date==max(date)&!article %in% exclude) %>% 
+#   select(article,views) %>% 
+#   mutate(rank=min_rank(-views)) %>% 
+#   head(10)
+# 
+# 
+# topName <- todayTopTen$article[1]
+# url <- paste0("http://en.wikipedia.org/wiki/",topName)
+# test <- http_status(GET(url))
+# 
+# 
+# 
+# vcardImage <- read_html(url) %>%
+#   html_nodes(".vcard img") %>% 
+#   html_attr("src")
+
+
+
+info=list(vcardImage=vcardImage)
+return(info)
+
+})
+
+```
+
+### 1
+
+
+```{r}
+
+output$one <- renderUI({
+ 
+  list(img(src=topTenData()$vcardImage[1]))
+})
+
+uiOutput("one")
+
+#broken image copy is 
+# http://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Tom_Brady_2016.JPG/220px-Tom_Brady_2016.JPG
+
+# output$one <- renderUI({
+#   req(topTenData()) # this is working
+#   print("b")
+#  print(topTenData()$vcardImage)
+#    print("b2") #"//upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Tom_Brady_2016.JPG/220px-Tom_Brady_2016.JPG"
+#   HTML(as(topTenData()$vcardImage,"character"))
+# })
+# 
+#  uiOutput("one")
+
+## from mediaHeadlines in GDELT
+   
+#    output$one <- renderUI({
+#   
+#    list(
+# h4(strong(info()$data$titleArticle[1])),
+#   a(href=info()$data$urlArticle[1], target='_blank', img(src=info()$data$urlThumbnail[1], width= 350))
+#   )
+# })
+# 
+# uiOutput("one")
+
+
+
+```
+
+### 2
+
+
+```{r}
+
+output$two <- renderUI({
+ 
+  list(paste0(h4(strong(todayTopTen$article[2])),todayTopTen$views[2]," views"),
+       img(src=topTenData()$vcardImage[2]))
+  
+  # list(h4(strong(todayTopTen$article[2])),
+  #      paste0(todayTopTen$views[2]," views"),
+  #   img(src=topTenData()$vcardImage[2]))
+})
+
+uiOutput("two")
+
+```
+
+### 3
+
+```{r}
+
+output$three <- renderUI({
+ 
+  list(img(src=topTenData()$vcardImage[3]))
+})
+
+uiOutput("three")
+
+```
