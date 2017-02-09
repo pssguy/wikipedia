@@ -222,7 +222,7 @@ DT::dataTableOutput("guardianTable")
 Daily Top 10
 =====================================
 
-Inputs {.sidebar}
+Inputs {.sidebar data-width=400}
 -------------------------------------
 
 ```{r}
@@ -253,10 +253,10 @@ req(input$topTenDate)
   print(input$topTenDate)
   print("a")
   
-todayTopTen <- top_articles(start = as.Date(input$topTenDate))
-  (glimpse(todayTopTen))
+todayTopThousand <- top_articles(start = as.Date(input$topTenDate))
+  (glimpse(todayTopThousand))
 
-todayTopTen <- todayTopTen %>% 
+todayTopTen <- todayTopThousand %>% 
   #mutate(date <- as.Date(date)) %>% ## if not using readr 
   filter(!article %in% exclude) %>%
   select(article,views) %>%
@@ -284,12 +284,31 @@ for(i in seq_along(todayTopTen$article)) {
 
 print(vcardImage)
 
-info=list(vcardImage=vcardImage,todayTopTen=todayTopTen)
+info=list(vcardImage=vcardImage,todayTopTen=todayTopTen,todayTopThousand=todayTopThousand)
 return(info)
 
 })
 
 ```
+
+---
+
+```{r}
+ 
+
+output$thousandTable <- DT::renderDataTable({
+  
+   req(tt())
+  
+tt()$todayTopThousand %>% 
+  select(article,views)%>%
+ DT::datatable(class='compact stripe hover row-border order-column',rownames=TRUE,options= list(paging = TRUE, searching = TRUE,info=FALSE))
+})
+
+DT::dataTableOutput("thousandTable")
+
+```
+
 
 Row 
 -----------------------------------------------------------------------
@@ -303,7 +322,7 @@ output$one <- renderUI({
  
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[1]," ",tt()$todayTopTen$views[1]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[1]," ",tt()$todayTopTen$views[1]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[1]))
@@ -349,7 +368,7 @@ output$two <- renderUI({
  
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[2]," ",tt()$todayTopTen$views[2]," views")
+ txt <- str_replace_all(paste0(tt()$todayTopTen$article[2]," ",tt()$todayTopTen$views[2]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[2]))
@@ -372,7 +391,7 @@ output$three <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[3]," ",tt()$todayTopTen$views[3]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[3]," ",tt()$todayTopTen$views[3]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[3]))
@@ -395,7 +414,7 @@ output$four <- renderUI({
  
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[4]," ",tt()$todayTopTen$views[4]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[4]," ",tt()$todayTopTen$views[4]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[4]))
@@ -417,7 +436,7 @@ output$five <- renderUI({
  
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[5]," ",tt()$todayTopTen$views[5]," views")
+ txt <- str_replace_all(paste0(tt()$todayTopTen$article[5]," ",tt()$todayTopTen$views[5]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[5]))
@@ -443,7 +462,7 @@ output$six <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[6]," ",tt()$todayTopTen$views[6]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[6]," ",tt()$todayTopTen$views[6]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[6]))
@@ -465,7 +484,7 @@ output$seven <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[7]," ",tt()$todayTopTen$views[7]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[7]," ",tt()$todayTopTen$views[7]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[7]))
@@ -487,7 +506,7 @@ output$eight <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[8]," ",tt()$todayTopTen$views[8]," views")
+ txt <- str_replace_all(paste0(tt()$todayTopTen$article[8]," ",tt()$todayTopTen$views[8]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[8]))
@@ -509,7 +528,7 @@ output$nine <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[9]," ",tt()$todayTopTen$views[9]," views")
+  txt <- str_replace_all(paste0(tt()$todayTopTen$article[9]," ",tt()$todayTopTen$views[9]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[9]))
@@ -531,7 +550,7 @@ output$ten <- renderUI({
   
   req(tt())
   
-  txt <- paste0(tt()$todayTopTen$article[10]," ",tt()$todayTopTen$views[10]," views")
+ txt <- str_replace_all(paste0(tt()$todayTopTen$article[10]," ",tt()$todayTopTen$views[10]," views"),"_"," ")
  
   list(h4(strong(txt)),
        img(src=tt()$vcardImage[10]))
