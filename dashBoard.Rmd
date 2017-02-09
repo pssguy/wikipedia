@@ -1,7 +1,8 @@
 ---
-title: "Wikipedia Pageviews (under development)"
+title: "Wikipedia Pageviews"
 output: 
   flexdashboard::flex_dashboard:
+    logo: "logo.png"
     orientation: rows
     vertical_layout: fill
     css: styles.css
@@ -32,7 +33,9 @@ library(tidyverse)
 # fast and no ascii issues cf readr
 pageViewsEn <- read_feather("pageViewsEn.feather")
 
-exclude <- c("Main_Page","404.php", "Special:Search","Special:CreateAccount","Special:Book")
+exclude <- c("Main_Page","404.php", "Special:Search","Special:CreateAccount","Special:Book","Special:RecentChanges",
+             "Special:RecentChanges","Special:Watchlist","Special:MobileMenu","Special:MobileOptions"
+             ,"Special:RecentChangesLinked","Special:CiteThisPage","Special:LinkSearch","Special:WhatLinksHere","Special:MyTalk","Special:Log","Special:BookSources","Special:RecentChangesLinked/Portal:Contents")
 
 urlBase <-"https://en.wikipedia.org/wiki/"
 
@@ -221,7 +224,7 @@ DT::dataTableOutput("guardianTable")
 
 
 
-Daily Top 10
+Daily Top 1000
 =====================================
 
 Inputs {.sidebar data-width=400}
@@ -244,34 +247,22 @@ dateInput(inputId = "topTenDate", label="Change Date", value = Sys.Date()-1, min
 
 tt <- reactive({
 
-  # more use whena nalyzing totals  
-# todayTopTen <-pageViewsEn %>% 
-#   mutate(date <- as.Date(date)) %>% ## if not using readr 
-#   filter(date==max(date)&!article %in% exclude) %>% 
-#   select(article,views) %>% 
-#   mutate(rank=min_rank(-views)) %>% 
-#   head(10)
-  
 req(input$topTenDate)
-  
-  print(input$topTenDate)
-  print("a")
-  
+
 todayTopThousand <- top_articles(start = as.Date(input$topTenDate)) %>% 
   filter(!article %in% exclude)
-  (glimpse(todayTopThousand))
+ 
 
 todayTopTen <- todayTopThousand %>% 
   select(article,views) %>%
   mutate(rank=min_rank(-views)) %>%
   head(10)
 
-(glimpse(todayTopTen))
-  
+
   vcardImage <- vector(mode = "character", length = 10)
 
 for(i in seq_along(todayTopTen$article)) {
-  print(i)
+  
   topName <- todayTopTen$article[i]
   url <- paste0("http://en.wikipedia.org/wiki/",topName)
   test <- http_status(GET(url))
@@ -285,7 +276,6 @@ for(i in seq_along(todayTopTen$article)) {
 }
 
 
-print(vcardImage)
 
 info=list(vcardImage=vcardImage,todayTopTen=todayTopTen,todayTopThousand=todayTopThousand)
 return(info)
@@ -293,6 +283,8 @@ return(info)
 })
 
 ```
+
+
 
 ---
 
@@ -316,6 +308,7 @@ DT::dataTableOutput("thousandTable")
 
 ```
 
+<a id="blogLink" href="http://www.mytinyshinys.com/" >myTinyShinys Website</a>
 
 Row 
 -----------------------------------------------------------------------
@@ -336,32 +329,6 @@ output$one <- renderUI({
 })
 
 uiOutput("one")
-
-#broken image copy is 
-# http://upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Tom_Brady_2016.JPG/220px-Tom_Brady_2016.JPG
-
-# output$one <- renderUI({
-#   req(topTenData()) # this is working
-#   print("b")
-#  print(topTenData()$vcardImage)
-#    print("b2") #"//upload.wikimedia.org/wikipedia/commons/thumb/e/e0/Tom_Brady_2016.JPG/220px-Tom_Brady_2016.JPG"
-#   HTML(as(topTenData()$vcardImage,"character"))
-# })
-# 
-#  uiOutput("one")
-
-## from mediaHeadlines in GDELT
-   
-#    output$one <- renderUI({
-#   
-#    list(
-# h4(strong(info()$data$titleArticle[1])),
-#   a(href=info()$data$urlArticle[1], target='_blank', img(src=info()$data$urlThumbnail[1], width= 350))
-#   )
-# })
-# 
-# uiOutput("one")
-
 
 
 ```
