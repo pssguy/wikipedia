@@ -34,6 +34,8 @@ pageViewsEn <- read_feather("pageViewsEn.feather")
 
 exclude <- c("Main_Page","404.php", "Special:Search","Special:CreateAccount","Special:Book")
 
+urlBase <-"https://en.wikipedia.org/wiki/"
+
 
 ```
 
@@ -229,6 +231,8 @@ Inputs {.sidebar data-width=400}
 
 includeMarkdown("info.md")
 hr()
+p()
+p()
 dateInput(inputId = "topTenDate", label="Change Date", value = Sys.Date()-1, min = "2015-07-01", max =  Sys.Date()-1,
   format = "yyyy-mm-dd", startview = "month", weekstart = 0,
   language = "en", width = NULL)
@@ -253,12 +257,11 @@ req(input$topTenDate)
   print(input$topTenDate)
   print("a")
   
-todayTopThousand <- top_articles(start = as.Date(input$topTenDate))
+todayTopThousand <- top_articles(start = as.Date(input$topTenDate)) %>% 
+  filter(!article %in% exclude)
   (glimpse(todayTopThousand))
 
 todayTopTen <- todayTopThousand %>% 
-  #mutate(date <- as.Date(date)) %>% ## if not using readr 
-  filter(!article %in% exclude) %>%
   select(article,views) %>%
   mutate(rank=min_rank(-views)) %>%
   head(10)
@@ -301,8 +304,12 @@ output$thousandTable <- DT::renderDataTable({
    req(tt())
   
 tt()$todayTopThousand %>% 
-  select(article,views)%>%
- DT::datatable(class='compact stripe hover row-border order-column',rownames=TRUE,options= list(paging = TRUE, searching = TRUE,info=FALSE))
+  mutate(webUrl = paste0(urlBase,article)) %>% 
+  
+   mutate(link = paste0("<a href=\"", webUrl, "\" target=\"_blank\">", article, "</a>")) %>% 
+  select(link,views) %>%
+ DT::datatable(class='compact stripe hover row-border order-column',rownames=TRUE,
+               escape = FALSE,options= list(paging = TRUE, searching = TRUE,info=FALSE))
 })
 
 DT::dataTableOutput("thousandTable")
