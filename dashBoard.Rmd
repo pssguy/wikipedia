@@ -2,7 +2,7 @@
 title: "Wikipedia Pageviews (under development)"
 output: 
   flexdashboard::flex_dashboard:
-    orientation: columns
+    orientation: rows
     vertical_layout: fill
     css: styles.css
     source_code: embed
@@ -32,13 +32,8 @@ library(tidyverse)
 # fast and no ascii issues cf readr
 pageViewsEn <- read_feather("pageViewsEn.feather")
 
-exclude <- c("Main_Page","404.php", "Special:Search")
-todayTopTen <-pageViewsEn %>% 
-  mutate(date <- as.Date(date)) %>% ## if not using readr 
-  filter(date==max(date)&!article %in% exclude) %>% 
-  select(article,views) %>% 
-  mutate(rank=min_rank(-views)) %>% 
-  head(10)
+exclude <- c("Main_Page","404.php", "Special:Search","Special:CreateAccount","Special:Book")
+
 
 ```
 
@@ -120,6 +115,39 @@ data()$df %>%
 Column {data-width=350}
 -----------------------------------------------------------------------
 
+
+### Wikipedia Sidebar (first name entered) Links inoperable
+
+```{r }
+
+
+output$wikiCard <- renderUI({
+  req(data())
+  
+  theName <- str_replace_all(data()$vals[1]," ","_")
+  url <- paste0("http://en.wikipedia.org/wiki/",theName)
+  test <- http_status(GET(url))
+  
+  if (test$category == "client error")
+    return()
+
+  vcard <- read_html(url) %>%
+    html_nodes(".vcard")
+  
+  if (length(vcard) == 0)
+    return()
+  
+  vcardInfo <- vcard[[1]]
+  
+  HTML(as(vcardInfo,"character"))
+})
+
+ uiOutput("wikiCard")
+
+```
+
+
+
 ### Guardian Articles (Most Popular wiki selection only)
 
 ```{r articles, warning= FALSE ,message = FALSE}
@@ -189,51 +217,58 @@ DT::dataTableOutput("guardianTable")
 ```
 
 
-### Wikipedia Sidebar (first name entered) Links inoperable
-
-```{r }
-
-
-output$wikiCard <- renderUI({
-  req(data())
-  
-  theName <- str_replace_all(data()$vals[1]," ","_")
-  url <- paste0("http://en.wikipedia.org/wiki/",theName)
-  test <- http_status(GET(url))
-  
-  if (test$category == "client error")
-    return()
-
-  vcard <- read_html(url) %>%
-    html_nodes(".vcard")
-  
-  if (length(vcard) == 0)
-    return()
-  
-  vcardInfo <- vcard[[1]]
-  
-  HTML(as(vcardInfo,"character"))
-})
-
- uiOutput("wikiCard")
-
-```
 
 
 Daily Top 10
 =====================================
 
+Inputs {.sidebar}
+-------------------------------------
 
 ```{r}
 
-topTenData <- reactive({
+includeMarkdown("info.md")
+hr()
+dateInput(inputId = "topTenDate", label="Change Date", value = Sys.Date()-1, min = "2015-07-01", max =  Sys.Date()-1,
+  format = "yyyy-mm-dd", startview = "month", weekstart = 0,
+  language = "en", width = NULL)
+
+```
+
+
+```{r}
+
+tt <- reactive({
+
+  # more use whena nalyzing totals  
+# todayTopTen <-pageViewsEn %>% 
+#   mutate(date <- as.Date(date)) %>% ## if not using readr 
+#   filter(date==max(date)&!article %in% exclude) %>% 
+#   select(article,views) %>% 
+#   mutate(rank=min_rank(-views)) %>% 
+#   head(10)
   
-  # get rid of generic pages
+req(input$topTenDate)
   
+  print(input$topTenDate)
+  print("a")
+  
+todayTopTen <- top_articles(start = as.Date(input$topTenDate))
+  (glimpse(todayTopTen))
+
+todayTopTen <- todayTopTen %>% 
+  #mutate(date <- as.Date(date)) %>% ## if not using readr 
+  filter(!article %in% exclude) %>%
+  select(article,views) %>%
+  mutate(rank=min_rank(-views)) %>%
+  head(10)
+
+(glimpse(todayTopTen))
   
   vcardImage <- vector(mode = "character", length = 10)
 
 for(i in seq_along(todayTopTen$article)) {
+  print(i)
   topName <- todayTopTen$article[i]
   url <- paste0("http://en.wikipedia.org/wiki/",topName)
   test <- http_status(GET(url))
@@ -245,33 +280,19 @@ for(i in seq_along(todayTopTen$article)) {
   vcardImage[i]<- ifelse(length(temp!=0),temp,"http://www.premiersoccerstats.com/noImage2.jpg")
   
 }
-#   exclude <- c("Main_Page","404.php", "Special:Search")
-#   
-# todayTopTen <-pageViewsEn %>% 
-#   filter(date==max(date)&!article %in% exclude) %>% 
-#   select(article,views) %>% 
-#   mutate(rank=min_rank(-views)) %>% 
-#   head(10)
-# 
-# 
-# topName <- todayTopTen$article[1]
-# url <- paste0("http://en.wikipedia.org/wiki/",topName)
-# test <- http_status(GET(url))
-# 
-# 
-# 
-# vcardImage <- read_html(url) %>%
-#   html_nodes(".vcard img") %>% 
-#   html_attr("src")
 
 
+print(vcardImage)
 
-info=list(vcardImage=vcardImage)
+info=list(vcardImage=vcardImage,todayTopTen=todayTopTen)
 return(info)
 
 })
 
 ```
+
+Row 
+-----------------------------------------------------------------------
 
 ### 1
 
@@ -280,7 +301,12 @@ return(info)
 
 output$one <- renderUI({
  
-  list(img(src=topTenData()$vcardImage[1]))
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[1]," ",tt()$todayTopTen$views[1]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[1]))
 })
 
 uiOutput("one")
@@ -321,13 +347,16 @@ uiOutput("one")
 
 output$two <- renderUI({
  
-  list(paste0(h4(strong(todayTopTen$article[2])),todayTopTen$views[2]," views"),
-       img(src=topTenData()$vcardImage[2]))
+  req(tt())
   
-  # list(h4(strong(todayTopTen$article[2])),
-  #      paste0(todayTopTen$views[2]," views"),
-  #   img(src=topTenData()$vcardImage[2]))
+  txt <- paste0(tt()$todayTopTen$article[2]," ",tt()$todayTopTen$views[2]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[2]))
 })
+
+
+
 
 uiOutput("two")
 
@@ -335,13 +364,183 @@ uiOutput("two")
 
 ### 3
 
+
 ```{r}
 
 output$three <- renderUI({
  
-  list(img(src=topTenData()$vcardImage[3]))
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[3]," ",tt()$todayTopTen$views[3]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[3]))
 })
+
+
+
 
 uiOutput("three")
 
 ```
+
+### 4
+
+
+```{r}
+
+output$four <- renderUI({
+ 
+ 
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[4]," ",tt()$todayTopTen$views[4]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[4]))
+})
+
+
+
+uiOutput("four")
+
+```
+
+### 5
+
+
+```{r}
+
+output$five <- renderUI({
+ 
+ 
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[5]," ",tt()$todayTopTen$views[5]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[5]))
+})
+
+
+
+
+uiOutput("five")
+
+```
+
+
+Row 
+-----------------------------------------------------------------------
+
+### 6
+
+```{r}
+
+output$six <- renderUI({
+ 
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[6]," ",tt()$todayTopTen$views[6]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[6]))
+})
+
+
+
+
+uiOutput("six")
+
+```
+
+### 7
+
+```{r}
+
+output$seven <- renderUI({
+ 
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[7]," ",tt()$todayTopTen$views[7]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[7]))
+})
+
+
+
+
+uiOutput("seven")
+
+```
+
+### 8
+
+```{r}
+
+output$eight <- renderUI({
+ 
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[8]," ",tt()$todayTopTen$views[8]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[8]))
+})
+
+
+
+
+uiOutput("eight")
+
+```
+
+### 9
+
+```{r}
+
+output$nine <- renderUI({
+ 
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[9]," ",tt()$todayTopTen$views[9]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[9]))
+})
+
+
+
+
+uiOutput("nine")
+
+```
+
+### 10
+
+```{r}
+
+output$ten <- renderUI({
+ 
+  
+  req(tt())
+  
+  txt <- paste0(tt()$todayTopTen$article[10]," ",tt()$todayTopTen$views[10]," views")
+ 
+  list(h4(strong(txt)),
+       img(src=tt()$vcardImage[10]))
+})
+
+
+
+
+uiOutput("ten")
+
+```
+
