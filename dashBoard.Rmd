@@ -186,14 +186,18 @@ results <- get_guardian(
   from.date = theDate,
   to.date = theDate,
   
-  api.key = "3xzg2fk53jcdgaj5tbwqqhcz" # from vignette seems to work
+  api.key = "3xzg2fk53jcdgaj5tbwqqhcz" 
 )
 
 link <- character()
   blankdf <- data.frame(link)
   
+  #print(results)
+  
+  
   ## work still required
-if (nrow(results) == 1 | is.na(results$id[1])) {
+if (nrow(results) < 1)  {
+ 
   DT::datatable(
     blankdf,rownames = FALSE,escape = FALSE,options = list(
       paging = FALSE, searching = FALSE,info = FALSE
